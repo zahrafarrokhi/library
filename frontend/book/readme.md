@@ -595,3 +595,58 @@ await dispatch(
 ![Payload](./screenshots/page-filter-lte.png)
 
 ![Payload](./screenshots/page-filter-gte.png)
+
+
+## Filter with slider
+```jsx
+1.initial State is Array and in booklist =>  page_numbers__lte: filter[1],
+const [filter, setFilter] = useState([0,1000])
+
+2.
+ const handleChange = (event, newValue) => {
+    setFilter(newValue);
+  };
+   <Slider
+       
+        value={filter}
+        onChange={handleChange}
+        valueLabelDisplay="auto"
+        // getAriaValueText={valuetext}
+        disableSwap
+        max={1000}
+      />
+3.
+   <Button
+      variant="outlined"
+      onClick={() => {  booksList();  }} >Filter</Button>
+
+4.
+ const booksList = async (anything) => {
+    try {
+      await dispatch(
+        loadBooks({
+          // search
+          search: anything,
+         
+         //filter
+          page_numbers__lte: filter[1],
+          page_numbers__gte: filter[0],
+        })
+      ).unwrap();
+    } catch (e) {
+      console.log("error");
+    }
+  };
+  5.cahange default slider
+
+ max={1000}
+
+```
+## pointer example for setFilter
+```jsx
+ const x = () => {
+    // ../
+  }
+  new Promise().then(x)
+```
+ 

@@ -11,25 +11,28 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
 import { loadBooks, reset } from "@/redux/slices /books";
-import { Button, IconButton, InputAdornment, TextField } from "@mui/material";
+import { Button, IconButton, InputAdornment, Slider, TextField } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import { flushSync } from "react-dom";
-import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
-import ArrowBackIosIcon from '@mui/icons-material/ArrowBackIos';
+import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import ArrowBackIosIcon from "@mui/icons-material/ArrowBackIos";
 
 export default function Book() {
   //search
   const [search, setSearch] = useState("");
   // filters
-  const [filter, setFilter] = useState({
-    pageLte:"",
-    pageGte:""
-  });
-  
+  // const [filter, setFilter] = useState({
+  //   pageLte: "",
+  //   pageGte: "",
+  // });
+  const [filter, setFilter] = useState([0,1000])
 
 
+  const handleChange = (event, newValue) => {
+    setFilter(newValue);
+  };
   // axios
   // const [books,setBooks] = useState([])
   // const listBooks =async()=>{
@@ -45,15 +48,19 @@ export default function Book() {
   const dispatch = useDispatch();
   const booksList = async (anything) => {
     try {
-      await dispatch(loadBooks({ 
-        // search
-        search: anything ,
-        //filter
-        page_numbers__lte:filter.pageLte,
-        page_numbers__gte:filter.pageGte
-      
-      
-      })).unwrap();
+      await dispatch(
+        loadBooks({
+          // search
+          search: anything,
+          // //filter
+          // page_numbers__lte: filter.pageLte,
+          // page_numbers__gte: filter.pageGte,
+
+         //filter
+          page_numbers__lte: filter[1],
+          page_numbers__gte: filter[0],
+        })
+      ).unwrap();
       // console.log(reset({ treset: 123}));
     } catch (e) {
       console.log("error");
@@ -111,23 +118,28 @@ export default function Book() {
             Search
           </Button>
         </div>
-
-        <div>
-          <TextField
+        {/* Filter */}
+        <div className="flex gap-4 w-[200px]">
+          {/* <TextField
             label="Page less..."
             value={filter.pageGte}
-            onChange={(e) => setFilter({...filter,pageGte:e.target.value})}
-            InputLabelProps={{ shrink: true }} 
-   // icon search
-   InputProps={{
-    endAdornment: (
-      <InputAdornment position="end">
-          <IconButton onClick={()=>{booksList()}}>  <ArrowBackIosIcon /></IconButton>
-      
-      </InputAdornment>
-    ),
-   }}
-
+            onChange={(e) => setFilter({ ...filter, pageGte: e.target.value })}
+            InputLabelProps={{ shrink: true }}
+            // icon search
+            InputProps={{
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    onClick={() => {
+                      booksList();
+                    }}
+                  >
+                    {" "}
+                    <ArrowBackIosIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             size="small"
             className="flex-grow md:flex-grow-0 "
           />
@@ -135,20 +147,45 @@ export default function Book() {
           <TextField
             label="Page more..."
             value={filter.pageLte}
-            onChange={(e) => setFilter({...filter,pageLte:e.target.value})}
-               // icon search
-   InputProps={{
-    startAdornment: (
-      <InputAdornment position="start">
-         <IconButton onClick={()=>{booksList()}}>  <ArrowBackIosIcon /></IconButton>
-      
-      </InputAdornment>
-    ),
-   }}
-
+            onChange={(e) => setFilter({ ...filter, pageLte: e.target.value })}
+            // icon search
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconButton
+                    onClick={() => {
+                      booksList();
+                    }}
+                  >
+                    {" "}
+                    <ArrowBackIosIcon />
+                  </IconButton>
+                </InputAdornment>
+              ),
+            }}
             size="small"
             className="flex-grow md:flex-grow-0 "
-          />
+          /> */}
+
+      <Slider
+   
+        value={filter}
+        onChange={handleChange}
+        valueLabelDisplay="auto"
+        // getAriaValueText={valuetext}
+        disableSwap
+        max={1000}
+      />
+      <Button
+      variant="outlined"
+                    onClick={() => {
+                      booksList();
+                    }}
+                  >
+                    {" "}
+                  Filter
+                  </Button>
+  
         </div>
       </div>
       <TableContainer component={Paper}>
