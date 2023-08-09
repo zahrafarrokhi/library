@@ -43,11 +43,11 @@ export default function Book() {
   //  redux
   const books = useSelector((state) => state.bookReducer.books);
   const dispatch = useDispatch();
-  const booksList = async (search) => {
+  const booksList = async (anything) => {
     try {
       await dispatch(loadBooks({ 
         // search
-        search ,
+        search: anything ,
         //filter
         page_numbers__lte:filter.pageLte,
         page_numbers__gte:filter.pageGte
@@ -85,6 +85,7 @@ export default function Book() {
                     <IconButton
                       onClick={() => {
                         setSearch("");
+                        // input parameter is anything
                         booksList("");
                       }}
                     >
@@ -101,6 +102,7 @@ export default function Book() {
             variant="outlined"
             size="small"
             className=" "
+            // search is state
             onClick={() => booksList(search)}
             style={{
               textTransform: "none",
