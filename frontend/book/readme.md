@@ -650,3 +650,499 @@ const [filter, setFilter] = useState([0,1000])
   new Promise().then(x)
 ```
  
+ ## filter with backend
+ ```jsx
+//  1.
+//  get min,max page from backend 
+ class FilterPageNumbers(APIView):
+    def get(self,request,**kwargs):
+        page_number_min = 10000000000
+        page_number_max = 0
+        for book in Book.objects.all():
+            page_number_min = min(page_number_min, book.page_numbers)
+            page_number_max = max(page_number_max, book.page_numbers)
+
+        return Response(data={
+            "page_number_min":page_number_min,
+            "page_number_max": page_number_max,
+        },status=status.HTTP_200_OK)
+// 2.
+// state
+  const [filter, setFilter] = useState([])
+// redux
+
+export const filterBooks = createAsyncThunk(
+  'books/filter',
+  async (payload, thunkAPI) => {
+
+    try {
+      const response = await axios.get(`http://localhost:8000/api/books/filter-values`);
+
+      console.log(response, response.data);
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue({ error: error });
+    }
+  },
+);
+// 
+const internalInitialState = {
+
+  page_numbers:{},
+
+  
+};
+
+// 
+    builder.addCase(filterBooks.fulfilled, (state, action) => {
+      state.loading = IDLE;
+     
+      state.page_numbers = action.payload;
+      
+      return state;
+    });
+
+  // 3.
+    // filter
+  const page_numbers = useSelector((state) => state.bookReducer.page_numbers);
+
+  const pageBook = async () => {
+    try {
+      const resp = await dispatch(
+        filterBooks()
+      ).unwrap();
+      // min,max
+      setFilter([
+        resp.page_number_min,
+        resp.page_number_max,
+      ])
+    } catch (e) {
+      console.log("error");
+    }
+  };
+  useEffect(() => {
+    pageBook();
+  }, []);
+// 4.
+ <Slider
+   
+        max={page_numbers.page_number_max}
+        min={page_numbers.page_number_min}
+      />
+// 5.fix value of filter
+
+  const booksList = async (anything) => {
+    try {
+      await dispatch(
+        loadBooks({
+          // search
+          search: anything,
+        
+
+         //filter
+          page_numbers__lte: filter[1],
+          page_numbers__gte: filter[0],
+        })
+      ).unwrap();
+      // console.log(reset({ treset: 123}));
+    } catch (e) {
+      console.log("error");
+    }
+  };
+ ```
+
+
+ ### useEffect
+ ![Slider value](./screenshots/book-pagenumber-slider-useeffect.png)
+ ### action
+ ![Slider value](./screenshots/book-pagenumber-slider-redux-action.png)
+ ### state
+ ![Slider value](./screenshots/book-pagenumber-slider-redux-state.png)
+
+
+ ## add Category Field
+
+ ```python
+#  admin
+ class Categorydmin(admin.ModelAdmin):
+    search_fields = ('name',
+                     )
+    list_display = ['name',
+                  ]
+    ordering = ('name', )
+    fields = None
+
+ admin.site.register(Category,Categorydmin)
+
+
+
+ class BookAdmin(admin.ModelAdmin):
+    search_fields = ('authors', 'name', 
+                     'created_at', 'page_numbers')
+    list_display = [  'name','created_at', 'page_numbers', 'Categories','author_field','tag_field'
+                  ]
+    ordering = ( 'name', )
+    fields = None
+
+# serializers
+class BookSerializer(serializers.ModelSerializer):
+    authors = AuthorSerializer(many=True)
+    tag = TagSerializer(many=True)
+    Categories = CategorySerializer()
+    class Meta:
+        model = Book
+        fields = "__all__"
+
+ 
+ ```
+  ![Slider value](./screenshots/category_name.png)
+
+  ```jsx
+ <TableCell align="center">{item.Categories.name}</TableCell>
+
+  ```
+  ![Slider value](./screenshots/category-null.png)
+
+
+ ```jsx
+ 
+<TableCell align="center">{item.Categories?.name}</TableCell>
+
+ 
+ ```
+
+ ## Category parent
+ ![not nested](./screenshots/parent-not-nested.png)
+
+```python
+# serializers
+class CategorySerializer(serializers.ModelSerializer):
+    parent = SerializerMethodField()
+
+    class Meta:
+        model = Category
+        fields = "__all__"
+
+    def get_parent(self, obj):
+        if obj.parent is not None:
+            return CategorySerializer(obj.parent).data
+        else:
+            return None
+
+```
+
+![not nested](./screenshots/parent-nested.png)
+
+
+## Filter category
+```python
+# views.py
+class CategoryView(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    serializer_class = CategorySerializer
+    permission_classes = []
+    filter_backends = [ SearchFilter]
+    search_fields = ['name']
+    queryset = Category.objects.all()
+
+# urls.py
+router.register(r'category', views.CategoryView, basename='categories')
+
+```
+
+```jsx
+1. 
+// redux/slices/book.js
+
+export const categoryBooks = createAsyncThunk(
+  'books/categories',
+  async (payload, thunkAPI) => {
+
+    try {
+      const response = await axios.get(`http://localhost:8000/api/books/category`);
+
+      console.log(response, response.data);
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue({ error: error });
+    }
+  },
+);
+
+const internalInitialState = {
+  ...
+  categories:[],
+  ...
+};
+
+// categoryBooks
+builder.addCase(categoryBooks.pending, (state) => ({
+  ...state,
+  loading: LOADING,
+}));
+builder.addCase(categoryBooks.rejected, (state, action) => ({
+  ...state,
+  loading: IDLE,
+  error: action.payload.error,
+}));
+builder.addCase(categoryBooks.fulfilled, (state, action) => {
+  state.loading = IDLE;
+
+  state.categories = action.payload;
+  
+  return state;
+});
+
+2. 
+// app/page.js
+const categories = useSelector((state)=>state.bookReducer.categories)
+const categorylist = async () => {
+  try {
+    await dispatch(
+      categoryBooks()
+    ).unwrap();
+    
+  } catch (e) {
+    console.log("error");
+  }
+};
+useEffect(() => {
+  categorylist();
+}, []);
+
+
+3.
+const [filterCategory, setFilterCategory] = useState()
+
+<FormControl className="w-40">
+  <InputLabel id="demo-simple-select-label">Category</InputLabel>
+  <Select
+    labelId="demo-simple-select-label"
+    id="demo-simple-select"
+    value={filterCategory}
+    label="Category"
+    onChange={(e)=>setFilterCategory(e.target.value)}
+  >
+...    
+  </Select>
+</FormControl>
+
+
+4.
+<FormControl className="w-40">
+  <InputLabel id="demo-simple-select-label">Category</InputLabel>
+  <Select
+    ...
+  >
+  {categories?.map((cat)=><MenuItem value={cat.id} key={cat.id}>{cat.name}</MenuItem>)}  
+    
+  </Select>
+</FormControl>
+
+5.
+const booksList = async (anything) => {
+  try {
+    await dispatch(
+      loadBooks({
+        ...
+        //category
+        Categories:filterCategory,
+      })
+    ).unwrap();
+    // console.log(reset({ treset: 123}));
+  } catch (e) {
+    console.log("error");
+  }
+};
+
+6. Unselect
+<FormControl className="w-40">
+  <InputLabel id="demo-simple-select-label">Category</InputLabel>
+  <Select
+    ...
+  >
+    <MenuItem>All</MenuItem>
+  {categories?.map((cat)=>...)}  
+    
+  </Select>
+</FormControl>
+
+```
+
+## Filter author(MTM)
+
+### Getting author list
+```python
+class AuthorView(mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
+    serializer_class = AuthorSerializer
+    permission_classes = []
+    queryset = Author.objects.all()
+
+```
+
+```jsx
+1.
+export const authorBooks = createAsyncThunk(
+  'books/authors',
+  async (payload, thunkAPI) => {
+
+    try {
+      const response = await axios.get(`http://localhost:8000/api/authors/author`);
+
+      console.log(response, response.data);
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue({ error: error });
+    }
+  },
+);
+
+2.
+const internalInitialState = {
+  ...
+  authors:[],
+};
+
+3.
+// categoryBooks
+builder.addCase(authorBooks.pending, (state) => ({
+  ...state,
+  loading: LOADING,
+}));
+builder.addCase(authorBooks.rejected, (state, action) => ({
+  ...state,
+  loading: IDLE,
+  error: action.payload.error,
+}));
+builder.addCase(authorBooks.fulfilled, (state, action) => {
+  state.loading = IDLE;
+
+  state.authors = action.payload;
+  
+  return state;
+});
+
+4.
+const authors = useSelector((state) => state.bookReducer.authors);
+const authorsList = async () => {
+  try {
+    await dispatch(authorBooks()).unwrap();
+  } catch (e) {
+    console.log("error");
+  }
+};
+useEffect(() => {
+  authorsList();
+}, []);
+
+5.
+{/* author */}
+const [filterAuthor, setFilterAuthor] = useState();
+<FormControl className="w-40">
+  <InputLabel id="demo-simple-select-label">Author</InputLabel>
+
+  <Select
+    labelId="demo-simple-select-label"
+    id="demo-simple-select"
+    value={filterAuthor}
+    label="Category"
+    onChange={(e) => setFilterAuthor(e.target.value)}
+  >
+    <MenuItem>All</MenuItem>
+    {authors?.map((au) => (
+      <MenuItem value={au.user} key={au.user}>
+        {au.first_name}{' '}{au.last_name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
+
+6.
+const booksList = async (anything) => {
+  try {
+    await dispatch(
+      loadBooks({
+        ...
+        // author
+        author: [filterAuthor],
+      })
+    ).unwrap();
+  } catch (e) {
+    console.log("error");
+  }
+};
+```
+### Filtering author
+```python
+
+# views.py
+class BookView(mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
+
+  def get_queryset(self):
+      print(self.request.query_params.getlist('author[]'))
+      author = self.request.query_params.getlist('author[]', [])
+
+      if author is not None and author != "" and len(author) > 0 and author:
+          print(author)
+          return Book.objects.filter(authors__in=author)
+      else:
+          return Book.objects.all()
+
+
+```
+
+## Pagination
+```jsx
+1. Get count from redux
+builder.addCase(loadBooks.fulfilled, (state, action) => {
+  state.loading = IDLE;
+  ...
+  state.books = action.payload.results;
+  state.count = action.payload.count; // response.data.count
+  return state;
+});
+
+2.
+const LIMIT = 10;
+const count = useSelector((state) => state.bookReducer.count);
+const [page,setPage] = useState(1);
+const number_of_pages = Math.ceil(count/LIMIT)
+
+<Pagination count={number_of_pages} page={page} onChange={(e,v)=>setPage(v)} color="primary" />
+
+3.
+
+const offset  = (page-1)*LIMIT
+useEffect(() => {
+  booksList();
+}, [page]);
+
+4.
+const booksList = async (anything) => {
+  try {
+    await dispatch(
+      loadBooks({
+        ...
+        // Pagination
+        limit:LIMIT,
+        offset:offset
+      })
+    ).unwrap();
+  } catch (e) {
+    console.log("error");
+  }
+};
+
+```
+
+#### Calculating offset
+```
+Count = 43
+LIMIT = 10
+page_number     1   2   3   4   5
+Number of items 10  10  10  10  3
+Previous pages  0   1   2   3   4
+Previous items  0   10  20  30  40 // previous pages * limit
+```

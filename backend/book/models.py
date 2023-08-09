@@ -31,10 +31,12 @@ class Book(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     page_numbers = models.IntegerField()
     Categories = models.ForeignKey(Category, on_delete=models.PROTECT, null=True,blank=True)
-
+    # books.objects.filter(Categories__name__iexact="A")
 
     def __str__(self):
-        return self.name
+        return self.name if self.name is not None else ""
 
+
+#
 
 

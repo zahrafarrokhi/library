@@ -13,4 +13,3 @@ class AuthorView(mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.Generi
     queryset = Author.objects.all()
 
 
-

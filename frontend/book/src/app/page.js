@@ -10,8 +10,25 @@ import Paper from "@mui/material/Paper";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import { useSelector, useDispatch } from "react-redux";
-import { loadBooks, reset } from "@/redux/slices /books";
-import { Button, IconButton, InputAdornment, Slider, TextField } from "@mui/material";
+import {
+  authorBooks,
+  categoryBooks,
+  filterBooks,
+  loadBooks,
+  reset,
+} from "@/redux/slices /books";
+import {
+  Button,
+  FormControl,
+  IconButton,
+  InputAdornment,
+  InputLabel,
+  MenuItem,
+  Pagination,
+  Select,
+  Slider,
+  TextField,
+} from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
@@ -27,8 +44,7 @@ export default function Book() {
   //   pageLte: "",
   //   pageGte: "",
   // });
-  const [filter, setFilter] = useState([0,1000])
-
+  const [filter, setFilter] = useState([]);
 
   const handleChange = (event, newValue) => {
     setFilter(newValue);
@@ -56,9 +72,18 @@ export default function Book() {
           // page_numbers__lte: filter.pageLte,
           // page_numbers__gte: filter.pageGte,
 
-         //filter
+          //filter
           page_numbers__lte: filter[1],
           page_numbers__gte: filter[0],
+
+          //category
+          Categories: filterCategory,
+          // author
+          author: [filterAuthor],
+
+          // Pagination
+          limit:LIMIT,
+          offset:offset
         })
       ).unwrap();
       // console.log(reset({ treset: 123}));
@@ -66,10 +91,60 @@ export default function Book() {
       console.log("error");
     }
   };
+
+
+  // filter
+  const page_numbers = useSelector((state) => state.bookReducer.page_numbers);
+
+  const pageBook = async () => {
+    try {
+      const resp = await dispatch(filterBooks()).unwrap();
+      setFilter([resp.page_number_min, resp.page_number_max]);
+      // console.log(reset({ treset: 123}));
+    } catch (e) {
+      console.log("error");
+    }
+  };
   useEffect(() => {
-    booksList();
+    pageBook();
+  }, []);
+  // filterCategory
+  const [filterCategory, setFilterCategory] = useState();
+  const categories = useSelector((state) => state.bookReducer.categories);
+  const categorylist = async () => {
+    try {
+      await dispatch(categoryBooks()).unwrap();
+    } catch (e) {
+      console.log("error");
+    }
+  };
+  useEffect(() => {
+    categorylist();
   }, []);
 
+  // filterAuthor
+  const [filterAuthor, setFilterAuthor] = useState();
+  const authors = useSelector((state) => state.bookReducer.authors);
+  const authorsList = async () => {
+    try {
+      await dispatch(authorBooks()).unwrap();
+    } catch (e) {
+      console.log("error");
+    }
+  };
+  useEffect(() => {
+    authorsList();
+  }, []);
+
+  // Pagination
+  const LIMIT = 10;
+  const count = useSelector((state) => state.bookReducer.count);
+  const [page,setPage] = useState(1);
+  const number_of_pages = Math.ceil(count/LIMIT)
+  const offset  = (page-1)*LIMIT
+  useEffect(() => {
+    booksList();
+  }, [page]);
   return (
     <main className="flex min-h-screen flex-col  p-24">
       <div className="flex py-2 justify-between">
@@ -119,7 +194,7 @@ export default function Book() {
           </Button>
         </div>
         {/* Filter */}
-        <div className="flex gap-4 w-[200px]">
+        <div className="flex gap-4">
           {/* <TextField
             label="Page less..."
             value={filter.pageGte}
@@ -166,26 +241,65 @@ export default function Book() {
             size="small"
             className="flex-grow md:flex-grow-0 "
           /> */}
+          <div className=" w-[200px]">
+            <Slider
+              value={filter}
+              onChange={handleChange}
+              valueLabelDisplay="auto"
+              // getAriaValueText={valuetext}
+              disableSwap
+              max={page_numbers.page_number_max}
+              min={page_numbers.page_number_min}
+            />
+          </div>
+          <Button
+            variant="outlined"
+            onClick={() => {
+              booksList();
+            }}
+          >
+            {" "}
+            Filter
+          </Button>
+          {/* category */}
+          <FormControl className="w-40">
+            <InputLabel id="demo-simple-select-label">Category</InputLabel>
 
-      <Slider
-   
-        value={filter}
-        onChange={handleChange}
-        valueLabelDisplay="auto"
-        // getAriaValueText={valuetext}
-        disableSwap
-        max={1000}
-      />
-      <Button
-      variant="outlined"
-                    onClick={() => {
-                      booksList();
-                    }}
-                  >
-                    {" "}
-                  Filter
-                  </Button>
-  
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={filterCategory}
+              label="Category"
+              onChange={(e) => setFilterCategory(e.target.value)}
+            >
+              <MenuItem>All</MenuItem>
+              {categories?.map((cat) => (
+                <MenuItem value={cat.id} key={cat.id}>
+                  {cat.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* author */}
+          <FormControl className="w-40">
+            <InputLabel id="demo-simple-select-label">Author</InputLabel>
+
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={filterAuthor}
+              label="Category"
+              onChange={(e) => setFilterAuthor(e.target.value)}
+            >
+              <MenuItem>All</MenuItem>
+              {authors?.map((au) => (
+                <MenuItem value={au.user} key={au.user}>
+                  {au.first_name}{' '}{au.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
         </div>
       </div>
       <TableContainer component={Paper}>
@@ -195,6 +309,7 @@ export default function Book() {
               <TableCell align="center">Name</TableCell>
               <TableCell align="center">Authors</TableCell>
               <TableCell align="center">Tag</TableCell>
+              <TableCell align="center">Category</TableCell>
 
               <TableCell align="center">Created_at</TableCell>
 
@@ -214,7 +329,7 @@ export default function Book() {
                   {item.authors
                     .filter((_, index) => index < 2)
                     .map((author) => {
-                      return `${author.first_name} ${author.lastt_name}`;
+                      return `${author.first_name} ${author.last_name}`;
                     })}
                 </TableCell>
                 <TableCell align="center">
@@ -223,6 +338,9 @@ export default function Book() {
                     return tag.name;
                   })}
                 </TableCell>
+
+                <TableCell align="center">{item.Categories?.name}</TableCell>
+
                 <TableCell align="center">{item.created_at}</TableCell>
                 <TableCell align="center">{item.page_numbers}</TableCell>
               </TableRow>
@@ -230,6 +348,8 @@ export default function Book() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <Pagination count={number_of_pages} page={page} onChange={(e,v)=>setPage(v) }color="primary" />
     </main>
   );
 }

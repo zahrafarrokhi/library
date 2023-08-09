@@ -1,10 +1,10 @@
 from django.contrib import admin
-from .models import Book,Tag
+from .models import Book,Tag,Category
 # Register your models here.
 class BookAdmin(admin.ModelAdmin):
     search_fields = ('authors', 'name', 
                      'created_at', 'page_numbers')
-    list_display = [  'name','created_at', 'page_numbers', 'author_field','tag_field'
+    list_display = [  'name','created_at', 'page_numbers', 'Categories','author_field','tag_field'
                   ]
     ordering = ( 'name', )
     fields = None
@@ -37,7 +37,15 @@ class Tagdmin(admin.ModelAdmin):
                   ]
     ordering = ('name', )
     fields = None
+class Categorydmin(admin.ModelAdmin):
+    search_fields = ('name',
+                     )
+    list_display = ['name',
+                  ]
+    ordering = ('name', )
+    fields = None
 
 
 admin.site.register(Book, BookAdmin)
 admin.site.register(Tag, Tagdmin)
+admin.site.register(Category,Categorydmin)

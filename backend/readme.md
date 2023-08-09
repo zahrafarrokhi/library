@@ -341,3 +341,48 @@ class BookSerializer(serializers.ModelSerializer):
 ```
 ##
 ![postman](screenshots/postman_mtm.png)
+
+
+## min page_numbers 
+
+```python
+# 1.
+class FilterPageNumbers(APIView):
+    
+    def get(self,request,**kwargs):
+        arr = []
+        for book in Book.objects.all():
+            arr.append(book.page_numbers)
+        min(*arr)
+         return Response(data={
+            "page_number_min": min(*arr),
+            "page_number_max": max(*arr),
+        },status=status.HTTP_200_OK)
+        
+# 2
+min(*[book.page_numbers for book in Book.objects.value('page_numbers').all()])
+min(*[book for book in Book.objects.value('page_numbers').all()], key="page_numbers")
+
+class FilterPageNumbers(APIView):
+    
+    def get(self,request,**kwargs):
+        page_min=min(*[book.page_numbers for book in Book.objects.value('page_numbers').all()])
+         page_max=max(*[book.page_numbers for book in Book.objects.value('page_numbers').all()])
+         return Response(data={
+            "page_number_min": page_min,
+            "page_number_max": page_max,
+        },status=status.HTTP_200_OK)
+# 3
+class FilterPageNumbers(APIView):
+    def get(self,request,**kwargs):
+        page_number_min = 10000000000 
+        page_number_max = 0 
+        for book in Book.objects.all():
+            page_number_min = min(page_number_min, book.page_numbers) 
+            page_number_max = max(page_number_max, book.page_numbers) 
+
+        return Response(data={
+            "page_number_min":page_number_min,
+            "page_number_max": page_number_max,
+        },status=status.HTTP_200_OK)
+```
