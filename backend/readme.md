@@ -398,3 +398,185 @@ Book.objects.values('Categories').annotate(min_b=Min('page_numbers'), max_b=Max(
 Book.objects.all().aggregate(Max('page_numbers'))
 Book.objects.all().aggregate(Min('page_numbers'))
 ```
+
+## Fake data command
+### Install
+```python
+https://model-bakery.readthedocs.io/en/latest/basic_usage.html#model-relationships
+
+pip install django-faker model_bakery
+
+INSTALLED_APPS = (
+
+    # ...
+    'django_faker',
+)
+
+FAKER_LOCALE = None    
+FAKER_PROVIDERS = None 
+
+
+```
+### Create command
+1. Create a file for the command in `[app]/management/commands/`
+```python
+# 
+class Command(BaseCommand):
+
+    def add_arguments(self, parser):
+        """ 
+        Define command parameters here with help and defaults:
+        --phone-number
+        """
+        pass
+
+    def handle(self, *args, **options):
+        """
+        Define what the command does
+        """
+        pass
+```
+
+2. Create a book
+3. Create random page number with python randint
+```python
+class Command(BaseCommand):
+
+
+    def handle(self, *args, **options):
+        myfake = Faker()
+
+        book = baker.make(
+            Book,
+            name=myfake.name(),
+            page_numbers = randint(80,1500),
+        )
+
+```
+4. Create FK fields(Category)
+```python
+class Command(BaseCommand):
+
+    def add_arguments(self, parser):
+        pass
+
+    def handle(self, *args, **options):
+        myfake = Faker()
+        category, created = Category.objects.get_or_create(name="drama",slug="drama")
+
+        book = baker.make(
+            Book,
+            name=myfake.name(),
+            page_numbers = randint(80,1500),
+            Categories = category,
+        )
+```
+5. Create M2M fields
+```python
+class Command(BaseCommand):
+
+    def add_arguments(self, parser):
+        pass
+
+    def handle(self, *args, **options):
+        myfake = Faker()
+        
+        author = baker.make(
+            Author,
+            user__phone_number=myfake.phone_number(), # Access FK fields with __
+            first_name = myfake.first_name(),
+            last_name = myfake.last_name(),
+            phone=myfake.phone_number(),
+            description = myfake.paragraph(nb_sentences=3),
+            address = myfake.address()
+        )
+        tag = baker.make(
+            Tag,
+            name = myfake.name(),
+            slug = myfake.name(),
+            active = myfake.boolean()
+
+        )
+        book = baker.make(
+            ...
+            authors = [author], # These are M2M so they are arrays
+            tag =[tag],
+        )
+```
+
+### Run the command
+```commandline
+python manage.py createfakedata
+```
+
+![Admin output](./screenshots/command_result.png)
+
+### Generating a specific number of books
+```python
+class Command(BaseCommand):
+
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--count', dest='count', default=1, type=int,
+            help='Specifies the number of books.',
+        )
+
+
+    def handle(self, *args, **options):
+        count = options.get('count')
+        ...
+        for ind in range(count):
+            book = baker.make(
+                Book,
+                name=myfake.name(),
+                page_numbers = randint(80,1500),
+                Categories = category,
+                authors = author,
+                tag =[tag],
+            )
+
+```
+```commandline
+python manage.py createfakedata --count=25
+```
+### Creating multiple authors and choosing among them
+```python
+class Command(BaseCommand):
+
+    def add_arguments(self, parser):
+        ...
+        parser.add_argument(
+            '--count-authors', dest='count_authors', default=1, type=int,
+            help='Specifies the number of books.',
+        )
+
+    def handle(self, *args, **options):
+        count = options.get('count')
+        count_authors = options.get('count_authors')
+
+        ...
+        
+        authors = [baker.make(
+            Author,
+            user__phone_number=myfake.phone_number(),
+            first_name = myfake.first_name(),
+            last_name = myfake.last_name(),
+            phone=myfake.phone_number(),
+            description = myfake.paragraph(nb_sentences=3),
+            address = myfake.address()
+        ) for ind in range(count_authors)]
+        ...
+        for ind in range(count):
+            book = baker.make(
+                ...
+                authors = choices(
+                    authors, 
+                    k=randint(1, min(len(authors), 3)) # Select a maximum of 3 authors
+                ),
+            )
+
+```
+```commandline
+python manage.py createfakedata --count=25 --count-authors=8
+
+```
