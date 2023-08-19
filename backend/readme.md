@@ -386,3 +386,15 @@ class FilterPageNumbers(APIView):
             "page_number_max": page_number_max,
         },status=status.HTTP_200_OK)
 ```
+* Getting min/max without for
+
+```python
+## on sepecific category => min,max
+Book.objects.values('Categories').annotate(min_b=Min('page_numbers'), max_b=Max('page_numbers'))
+#### out 
+<QuerySet [{'Categories': None, 'min_b': 120, 'max_b': 120}, {'Categories': 1, 'min_b': 200, 'max_b': 612}, {'Categories': 2, 'min_b': 583, 'max_b': 583}]>
+
+## man ,min on all books
+Book.objects.all().aggregate(Max('page_numbers'))
+Book.objects.all().aggregate(Min('page_numbers'))
+```

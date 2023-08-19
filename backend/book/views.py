@@ -9,6 +9,7 @@ from rest_framework.views import APIView
 
 from .serializers import BookSerializer, CategorySerializer
 from .models import Book,Category,Tag
+from django.db.models import Min, Max
 # Create your views here.
 class BookView(mixins.ListModelMixin,mixins.RetrieveModelMixin,viewsets.GenericViewSet):
     serializer_class = BookSerializer
@@ -46,13 +47,16 @@ class CategoryView(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Ge
 
 class FilterPageNumbers(APIView):
     def get(self,request,**kwargs):
-        page_number_min = 10000000000
-        page_number_max = 0
-        for book in Book.objects.all():
-            page_number_min = min(page_number_min, book.page_numbers)
-            page_number_max = max(page_number_max, book.page_numbers)
-
+        # page_number_min = 10000000000
+        # page_number_max = 0
+        # for book in Book.objects.all():
+        #     page_number_min = min(page_number_min, book.page_numbers)
+        #     page_number_max = max(page_number_max, book.page_numbers)
+        max_page_numbers = Book.objects.all().aggregate(Max('page_numbers'))
+        min_page_numbers = Book.objects.all().aggregate(Min('page_numbers'))
         return Response(data={
-            "page_number_min":page_number_min,
-            "page_number_max": page_number_max,
+            "page_number_min":min_page_numbers['page_numbers__min'],
+            "page_number_max": max_page_numbers['page_numbers__max'],
         },status=status.HTTP_200_OK)
+
+
